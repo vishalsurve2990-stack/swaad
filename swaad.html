@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1E2B78">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Swaad">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Swaad - famous food spots near you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind:wght@400;500;600;700&family=Rozha+One&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --ink:#171A2B; --indigo:#1E2B78; --mile:#FFC42E; --chilli:#DC3B2A;
+  --steel:#ECEEF3; --mute:#5B6178; --leaf:#2F7D4F; --line:#D9DCE6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:'Hind','Noto Sans Devanagari',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:#C9CEDD;-webkit-tap-highlight-color:transparent;font-size:16px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--mile);outline-offset:2px}
+#app{max-width:520px;height:100vh;height:100dvh;margin:0 auto;display:flex;flex-direction:column;background:var(--steel);position:relative;overflow:hidden;box-shadow:0 0 40px rgba(20,20,60,.25)}
+
+/* header */
+header{flex:none;background:var(--indigo);color:#fff;padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top));display:flex;align-items:center;justify-content:space-between;gap:10px}
+.brand{font-family:'Rozha One',Georgia,serif;font-size:27px;line-height:1;color:var(--mile);margin:0;font-weight:400}
+.brand small{font-size:15px;color:#fff;opacity:.85;margin-left:8px}
+.loc{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:9px 13px;font-weight:600;font-size:14px;max-width:58%;min-height:40px}
+.loc span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.loc svg{flex:none}
+
+main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#mapwrap{height:100%;display:flex;flex-direction:column}
+
+/* nav */
+nav{flex:none;display:grid;grid-template-columns:repeat(4,1fr);background:#fff;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{background:none;border:0;padding:9px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:12.5px;font-weight:600;color:var(--mute)}
+nav button.on{color:var(--indigo)}
+nav button.on svg{stroke:var(--indigo);fill:var(--mile)}
+nav svg{fill:none;stroke:currentColor}
+
+/* sign hero */
+.sign{margin:14px 12px 4px;background:var(--chilli);color:#fff;border-radius:16px;padding:22px 20px 20px;position:relative;
+  background-image:radial-gradient(rgba(255,255,255,.13) 1.4px,transparent 1.6px);background-size:14px 14px}
+.sign::after{content:"";position:absolute;inset:7px;border:2.5px solid var(--mile);border-radius:11px;pointer-events:none}
+.sign h2{font-family:'Rozha One',Georgia,serif;font-weight:400;font-size:36px;line-height:1.05;margin:0 0 6px}
+.sign p{margin:0 0 16px;font-size:17px;max-width:30ch}
+.sign .row{position:relative;z-index:1}
+
+/* filters */
+.filters{padding:12px 12px 2px;position:sticky;top:0;background:var(--steel);z-index:5}
+.search{display:flex;align-items:center;gap:8px;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:0 12px}
+.search input{flex:1;border:0;background:none;padding:12px 0;font-size:16px;min-width:0}
+.search input:focus{outline:none}
+.search:focus-within{border-color:var(--indigo)}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1.5px solid var(--line);background:#fff;border-radius:10px;padding:7px 12px;font-weight:600;font-size:14px}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.count{padding:2px 14px 0;color:var(--mute);font-size:14px}
+
+/* cards */
+.card{background:#fff;border-radius:20px;margin:12px;overflow:hidden;box-shadow:0 1px 0 var(--line),0 8px 20px -10px rgba(30,43,120,.3)}
+.ph{position:relative;aspect-ratio:4/3;display:grid;place-items:center;overflow:hidden}
+.ph img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.ph .em{font-size:92px;filter:drop-shadow(0 8px 10px rgba(0,0,0,.28));position:relative}
+.ph::before{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.16) 1.6px,transparent 1.8px);background-size:16px 16px}
+.mile{position:absolute;left:12px;top:12px;width:72px;border-radius:36px 36px 6px 6px;overflow:hidden;text-align:center;background:#fff;color:var(--ink);box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.mile span{display:block;background:var(--mile);padding:8px 5px 4px;font-weight:700;font-size:11.5px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mile b{display:block;padding:4px 2px 6px;font-size:15px;line-height:1.1}
+.citytag{position:absolute;left:12px;top:12px;background:var(--mile);color:var(--ink);font-weight:700;font-size:13px;padding:6px 11px;border-radius:10px;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.heart{position:absolute;right:12px;top:12px;width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.92);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.heart svg{stroke:var(--ink);fill:none}
+.heart.on svg{stroke:var(--chilli);fill:var(--chilli)}
+.heart.pop{animation:pop .28s ease}
+@keyframes pop{50%{transform:scale(1.25)}}
+.body{padding:14px 16px 16px}
+.body h3{font-family:'Rozha One',Georgia,serif;font-weight:400;font-size:24px;line-height:1.15;margin:0 0 2px}
+.where{margin:0 0 10px;color:var(--mute);font-size:15px}
+.must{background:#FFF6D9;border-left:4px solid var(--mile);border-radius:4px 12px 12px 4px;padding:8px 12px;margin-bottom:10px;font-weight:600}
+.must small{display:block;font-weight:500;color:var(--mute);font-size:13px}
+.desc{margin:0 0 10px;font-size:16px;max-width:60ch}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tag{background:var(--steel);border-radius:8px;padding:4px 9px;font-size:13.5px;font-weight:500}
+.tag.stars{background:#E6F3EA;color:var(--leaf);font-weight:700}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions .btn{flex:1 1 auto}
+
+.btn{border:1.5px solid var(--indigo);color:var(--indigo);background:#fff;border-radius:12px;padding:10px 14px;font-weight:600;font-size:15px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px}
+.btn.primary{background:var(--indigo);color:#fff}
+.btn.mile-btn{background:var(--mile);border-color:var(--mile);color:var(--ink)}
+.btn.ghost{border-color:var(--line);color:var(--ink)}
+.btn.danger{border-color:#F0C4BE;color:var(--chilli)}
+.btn.wide{width:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+
+/* empty */
+.empty{margin:24px 16px;text-align:center;color:var(--mute)}
+.empty h3{font-family:'Rozha One',Georgia,serif;font-weight:400;font-size:24px;color:var(--ink);margin:6px 0}
+.empty .em{font-size:52px}
+.empty .row{justify-content:center;margin-top:14px}
+
+/* forms */
+.page{padding:16px 16px 28px}
+.page h2{font-family:'Rozha One',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 4px}
+.page h3{font-family:'Rozha One',Georgia,serif;font-weight:400;font-size:22px;margin:0 0 4px}
+.lead{margin:0 0 16px;color:var(--mute)}
+label{display:block;font-weight:600;font-size:14.5px;margin-bottom:12px}
+label small{font-weight:500;color:var(--mute)}
+input[type=text],input[type=search],select,textarea{width:100%;margin-top:5px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;font-size:16px;font-weight:400}
+textarea{min-height:84px;resize:vertical}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--indigo)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.box{background:#fff;border:1.5px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+.box legend{font-weight:700;padding:0 6px}
+.status{margin:8px 0 0;font-size:14px;color:var(--mute)}
+.status.ok{color:var(--leaf);font-weight:600}
+.preview{margin-top:8px;max-height:150px;border-radius:12px;display:none}
+hr{border:0;border-top:1.5px dashed var(--line);margin:22px 0}
+
+/* sheet + toast */
+.scrim{position:absolute;inset:0;background:rgba(15,18,40,.5);z-index:40}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));z-index:41;animation:up .22s ease;max-height:88%;overflow:auto}
+@keyframes up{from{transform:translateY(40px);opacity:.5}}
+.sheet h2{font-family:'Rozha One',Georgia,serif;font-weight:400;font-size:26px;margin:0 0 12px}
+.sheet label{margin-top:14px}
+#toast{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:11px 16px;border-radius:12px;font-weight:600;font-size:15px;z-index:60;max-width:88%;text-align:center;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+
+/* map */
+#map{flex:1;min-height:260px;background:#dfe3ee}
+.maphead{padding:10px 14px;background:#fff;border-bottom:1px solid var(--line);font-size:14px;color:var(--mute)}
+.pin{background:none;border:0}
+.pin span{display:grid;place-items:center;width:36px;height:36px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);background:var(--mile);border:2.5px solid var(--ink);box-shadow:0 3px 6px rgba(0,0,0,.35)}
+.pin i{transform:rotate(45deg);font-style:normal;font-size:18px}
+.leaflet-popup-content{font-family:inherit;margin:12px 14px}
+.pop-t{font-family:'Rozha One',Georgia,serif;font-size:18px;margin:0 0 2px}
+.pop-a{display:inline-block;margin-top:8px;font-weight:700;color:var(--indigo)}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1 class="brand">Swaad<small>स्वाद</small></h1>
+    <button class="loc" data-act="openSheet" aria-label="Change location">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>
+      <span id="locLabel">Set location</span>
+    </button>
+  </header>
+  <main id="view"></main>
+  <nav>
+    <button data-tab="feed"><svg width="24" height="24" viewBox="0 0 24 24" stroke-width="2"><path d="M4 10.5 12 4l8 6.5V20H4z"/></svg>Nearby</button>
+    <button data-tab="map"><svg width="24" height="24" viewBox="0 0 24 24" stroke-width="2"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg>Map</button>
+    <button data-tab="saved"><svg width="24" height="24" viewBox="0 0 24 24" stroke-width="2"><path d="M12 20.5s-8-5-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 6-8 11-8 11z"/></svg>Saved</button>
+    <button data-tab="add"><svg width="24" height="24" viewBox="0 0 24 24" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>Add spot</button>
+  </nav>
+  <div id="sheetRoot"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+</div>
+<input type="file" id="imp" accept=".csv,.json,text/csv,application/json" hidden>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ------------------------------------------------------------------
+   OPTIONAL: turn on shared, worldwide data (see README.md, Supabase).
+   Leave both empty to run fully on the phone with no server.
+------------------------------------------------------------------- */
+const CLOUD = { url: '', key: '' };
+
+/* ---------- sample data (verify names and pins before you publish) ---------- */
+const mk = (id,name,area,city,country,lat,lng,cuisine,dish,price,desc,emoji) =>
+  ({ id:'s'+id, name, area, city, country, lat, lng, cuisine, dish, price, desc, emoji, rating:0, photo:'', source:'seed' });
+
+const SEED = [
+  mk(1,"Karim's","Near Jama Masjid, Old Delhi","Delhi","India",28.6497,77.2334,["Mughlai","Kebab"],"Mutton burra and nihari",2,"Old Delhi's best-known Mughlai kitchen, in the lanes behind Jama Masjid.","🍢"),
+  mk(2,"Paranthe Wali Gali","Chandni Chowk","Delhi","India",28.6562,77.2312,["Street food","Vegetarian"],"Stuffed parathas",1,"A narrow Chandni Chowk lane lined with generations-old paratha shops.","🥙"),
+  mk(3,"Natraj Dahi Bhalle Wala","Chandni Chowk","Delhi","India",28.6567,77.2303,["Chaat","Vegetarian"],"Dahi bhalla and aloo tikki",1,"A classic chaat counter on the Chandni Chowk main road.","🥣"),
+  mk(4,"Sita Ram Diwan Chand","Paharganj","Delhi","India",28.6437,77.2138,["North Indian","Vegetarian","Breakfast"],"Chole bhature",1,"A Paharganj institution for a hot, heavy chole bhature breakfast.","🥘"),
+  mk(5,"Britannia & Co.","Ballard Estate","Mumbai","India",18.9339,72.8405,["Parsi"],"Berry pulao",3,"Long-running Parsi cafe in Ballard Estate, known for its berry pulao.","🍛"),
+  mk(6,"Bademiya","Colaba","Mumbai","India",18.9217,72.8327,["Kebab","Street food"],"Seekh kebab and rolls",1,"Late-night kebab stall behind the Taj, loved by locals and tourists alike.","🍢"),
+  mk(7,"Sardar Pav Bhaji","Tardeo","Mumbai","India",18.9712,72.8110,["Street food","Vegetarian"],"Pav bhaji",1,"A Tardeo favourite for buttery, spicy pav bhaji.","🍞"),
+  mk(8,"Ashok Vada Pav","Dadar","Mumbai","India",19.0195,72.8425,["Street food","Vegetarian"],"Vada pav",1,"A quick Dadar stop for Mumbai's signature snack.","🍔"),
+  mk(9,"Arsalan","Park Circus","Kolkata","India",22.5405,88.3660,["Biryani","Mughlai"],"Kolkata-style chicken biryani with potato",2,"A busy Park Circus restaurant known for Kolkata biryani.","🍛"),
+  mk(10,"Flurys","Park Street","Kolkata","India",22.5535,88.3517,["Bakery","Cafe","Breakfast"],"Pastries and tea",2,"A Park Street tea room that has been a Kolkata habit for decades.","🥐"),
+  mk(11,"Nizam's","New Market","Kolkata","India",22.5588,88.3529,["Street food","Kathi roll"],"Kathi roll",1,"Famous for kathi rolls, a Kolkata invention.","🌯"),
+  mk(12,"Paradise","Secunderabad","Hyderabad","India",17.4416,78.4862,["Biryani","Hyderabadi"],"Hyderabadi dum biryani",2,"One of the city's best-known biryani restaurants.","🍛"),
+  mk(13,"Nimrah Cafe","Near Charminar","Hyderabad","India",17.3618,78.4736,["Cafe","Bakery"],"Irani chai and Osmania biscuits",1,"Stop for chai and biscuits after walking around Charminar.","☕"),
+  mk(14,"Tunday Kababi","Aminabad","Lucknow","India",26.8496,80.9331,["Kebab","Awadhi"],"Galouti kebab",1,"The Lucknow name for melt-in-the-mouth galouti kebabs.","🍢"),
+  mk(15,"Kesar Da Dhaba","Near Golden Temple","Amritsar","India",31.6225,74.8790,["Punjabi","Vegetarian"],"Dal makhani and phirni",1,"A Punjabi dhaba a short walk from the Golden Temple.","🥘"),
+  mk(16,"Laxmi Misthan Bhandar (LMB)","Johari Bazaar","Jaipur","India",26.9187,75.8236,["Sweets","Rajasthani","Vegetarian"],"Rajasthani sweets and thali",2,"A Johari Bazaar landmark for sweets and snacks.","🍬"),
+  mk(17,"Sarafa Bazaar","Sarafa, Indore","Indore","India",22.7178,75.8562,["Street food","Night market","Vegetarian"],"Jalebi and bhutte ka kees",1,"A jewellery market by day that turns into a street-food market at night.","🍥"),
+  mk(18,"Kashi Chat Bhandar","Godowlia","Varanasi","India",25.3105,83.0105,["Chaat","Vegetarian"],"Tamatar chaat",1,"A Varanasi chaat shop close to the ghats.","🥣"),
+  mk(19,"MTR (Mavalli Tiffin Rooms)","Lalbagh Road","Bengaluru","India",12.9547,77.5850,["South Indian","Breakfast","Vegetarian"],"Rava idli and masala dosa",2,"A Bengaluru breakfast landmark, famous for rava idli.","🥞"),
+  mk(20,"Vidyarthi Bhavan","Gandhi Bazaar","Bengaluru","India",12.9437,77.5718,["South Indian","Breakfast","Vegetarian"],"Masala dosa",1,"A classic Basavanagudi spot for crisp, buttery dosas.","🥞"),
+  mk(21,"Murugan Idli Shop","T Nagar","Chennai","India",13.0405,80.2337,["South Indian","Vegetarian"],"Idli with chutneys and sambar",1,"Soft idlis with a variety of chutneys.","🥞"),
+  mk(22,"Chotiwala","Ram Jhula area","Rishikesh","India",30.1300,78.3150,["North Indian","Vegetarian","Thali"],"Thali",1,"A long-standing Rishikesh eatery for pilgrims and travellers.","🍽️"),
+  mk(23,"Thipsamai Pad Thai","Phra Nakhon","Bangkok","Thailand",13.7533,100.5013,["Noodles"],"Pad thai wrapped in egg",1,"Known for wok-fired pad thai over charcoal.","🍜"),
+  mk(24,"Jay Fai","Phra Nakhon","Bangkok","Thailand",13.7534,100.5035,["Seafood","Street food"],"Crab omelette",3,"A street-side kitchen known worldwide for its crab omelette.","🦀"),
+  mk(25,"Tsukiji Outer Market","Tsukiji","Tokyo","Japan",35.6655,139.7707,["Seafood","Street food"],"Fresh sushi and tamagoyaki",2,"Stalls and small shops selling seafood and snacks near the old fish market.","🍣"),
+  mk(26,"Ichiran","Shibuya","Tokyo","Japan",35.6607,139.6983,["Noodles"],"Tonkotsu ramen in a solo booth",2,"Ramen you eat in a private booth, tuned to your taste.","🍜"),
+  mk(27,"Dotonbori","Namba","Osaka","Japan",34.6688,135.5011,["Street food","Night market"],"Takoyaki and okonomiyaki",1,"A neon canal-side street packed with Osaka street food.","🍡"),
+  mk(28,"Gwangjang Market","Jongno","Seoul","South Korea",37.5700,126.9997,["Street food","Market"],"Bindaetteok and mayak gimbap",1,"A historic market with rows of food stalls.","🥞"),
+  mk(29,"L'As du Fallafel","Le Marais","Paris","France",48.8571,2.3596,["Falafel","Vegetarian"],"Falafel sandwich",1,"Rue des Rosiers' most famous falafel counter.","🥙"),
+  mk(30,"Angelina","Rue de Rivoli","Paris","France",48.8652,2.3283,["Cafe","Sweets"],"Hot chocolate and Mont-Blanc",3,"A historic tea room near the Tuileries.","☕"),
+  mk(31,"Katz's Delicatessen","Lower East Side","New York","United States",40.7223,-73.9874,["Deli"],"Pastrami on rye",2,"A New York deli institution.","🥪"),
+  mk(32,"Joe's Pizza","Greenwich Village","New York","United States",40.7307,-74.0022,["Pizza"],"Classic cheese slice",1,"The New York slice, folded and eaten on the go.","🍕"),
+  mk(33,"Borough Market","Southwark","London","United Kingdom",51.5055,-0.0910,["Market","Street food"],"Whatever you smell first",2,"A large food market with stalls from all over the world.","🥘"),
+  mk(34,"Dishoom","Covent Garden","London","United Kingdom",51.5129,-0.1264,["Indian","Cafe","Breakfast"],"Bacon naan roll",2,"Bombay-cafe style dining in central London.","🌯"),
+  mk(35,"Karakoy Gulluoglu","Karakoy","Istanbul","Turkey",41.0246,28.9773,["Sweets","Bakery"],"Baklava",2,"A well-known baklava house in Karakoy.","🍬"),
+  mk(36,"Eminonu fish sandwich boats","Eminonu","Istanbul","Turkey",41.0175,28.9735,["Street food","Seafood"],"Balik ekmek (fish sandwich)",1,"Grilled fish sandwiches by the Golden Horn.","🥪"),
+  mk(37,"Contramar","Roma Norte","Mexico City","Mexico",19.4187,-99.1699,["Seafood","Mexican"],"Pescado a la talla",3,"A long, lively seafood lunch in Roma Norte.","🐟"),
+  mk(38,"Maxwell Food Centre","Chinatown","Singapore","Singapore",1.2803,103.8448,["Hawker","Street food"],"Hainanese chicken rice",1,"A hawker centre known for chicken rice.","🍗"),
+  mk(39,"Lau Pa Sat","Raffles Quay","Singapore","Singapore",1.2807,103.8504,["Hawker","Night market"],"Satay street at night",1,"A Victorian-era market hall turned hawker centre.","🍢"),
+  mk(40,"Roscioli","Campo de' Fiori","Rome","Italy",41.8937,12.4720,["Italian"],"Carbonara",3,"Deli, bakery and restaurant in one, near Campo de' Fiori.","🍝"),
+  mk(41,"Pizzarium Bonci","Cipro","Rome","Italy",41.9078,12.4470,["Pizza","Bakery"],"Pizza al taglio",1,"Pizza by the slice with unusual toppings.","🍕")
+];
+
+/* ---------- helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const PRICE = { 1:'Budget', 2:'Mid-range', 3:'Splurge' };
+const PALETTES = [['#E8912D','#C4451E'],['#2F7D4F','#16472D'],['#3D4FBF','#1E2B78'],['#B23A6A','#6C1F45'],['#1E8C93','#0F4F5A'],['#D9A21B','#9A5D0B']];
+
+function km(la1, lo1, la2, lo2) {
+  const R = 6371, t = x => x * Math.PI / 180;
+  const dLa = t(la2 - la1), dLo = t(lo2 - lo1);
+  const h = Math.sin(dLa/2)**2 + Math.cos(t(la1)) * Math.cos(t(la2)) * Math.sin(dLo/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function fmtD(d) {
+  if (d < 1) return Math.max(10, Math.round(d * 100) * 10) + ' m';
+  if (d < 10) return d.toFixed(1) + ' km';
+  return Math.round(d).toLocaleString('en-US') + ' km';
+}
+function hash(str) { let h = 0; for (const c of String(str)) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
+function emojiFor(cu) {
+  const t = (cu || []).join(' ').toLowerCase();
+  const m = [['biryani','🍛'],['kebab','🍢'],['pizza','🍕'],['noodle','🍜'],['ramen','🍜'],['sweet','🍬'],['bakery','🥐'],['seafood','🦐'],['cafe','☕'],['chai','☕'],['dosa','🥞'],['south indian','🥞'],['burger','🍔'],['deli','🥪'],['sushi','🍣'],['mexican','🌮'],['italian','🍝'],['street','🥙'],['chaat','🥣']];
+  for (const [k, e] of m) if (t.includes(k)) return e;
+  return '🍽️';
+}
+const mapsQuery = s => s.source === 'user'
+  ? `${s.lat},${s.lng}`
+  : encodeURIComponent(`${s.name} ${s.city}`);
+const mapsUrl = s => `https://www.google.com/maps/search/?api=1&query=${mapsQuery(s)}`;
+const dirUrl  = s => `https://www.google.com/maps/dir/?api=1&destination=${mapsQuery(s)}`;
+
+/* ---------- storage: uses persistent storage when it exists, else the browser, else memory ---------- */
+const mem = {};
+const store = {
+  async get(k) {
+    try { if (window.storage) { const r = await window.storage.get(k); if (r && r.value) return JSON.parse(r.value); } } catch (e) {}
+    try { const v = window.localStorage.getItem(k); if (v) return JSON.parse(v); } catch (e) {}
+    return mem[k] ?? null;
+  },
+  async set(k, v) {
+    mem[k] = v;
+    const s = JSON.stringify(v);
+    try { if (window.storage) { await window.storage.set(k, s); return; } } catch (e) {}
+    try { window.localStorage.setItem(k, s); } catch (e) {}
+  }
+};
+
+/* ---------- state ---------- */
+const S = { tab:'feed', loc:null, radius:50, q:'', cuisine:'all', user:[], cloud:[], saved:[], sheet:false, map:null, photo:null };
+const persist = () => store.set('swaad:v1', { user:S.user, saved:S.saved, loc:S.loc, radius:S.radius });
+
+const allSpots = () => { const seen = new Set(); return [...S.user, ...S.cloud, ...SEED].filter(s => !seen.has(s.id) && seen.add(s.id)); };
+const byId = id => allSpots().find(s => s.id === id);
+const hay = s => [s.name, s.dish, s.city, s.area, s.country, (s.cuisine||[]).join(' ')].join(' ').toLowerCase();
+
+function baseList() {
+  const t = S.q.trim().toLowerCase();
+  let a = allSpots().map(s => ({ s, d: S.loc ? km(S.loc.lat, S.loc.lng, s.lat, s.lng) : null }));
+  if (S.cuisine !== 'all') a = a.filter(x => (x.s.cuisine||[]).includes(S.cuisine));
+  if (t) a = a.filter(x => hay(x.s).includes(t));
+  return a;
+}
+function feedList() {
+  let a = baseList();
+  if (S.loc && S.radius > 0) a = a.filter(x => x.d <= S.radius);
+  if (S.loc) a.sort((p, q) => p.d - q.d);
+  return a;
+}
+function cities() {
+  const m = new Map();
+  for (const s of allSpots()) {
+    const k = s.city + '|' + s.country;
+    const c = m.get(k) || { city:s.city, country:s.country, la:0, lo:0, n:0 };
+    c.la += s.lat; c.lo += s.lng; c.n++; m.set(k, c);
+  }
+  return [...m.values()].map(c => ({ ...c, lat:c.la/c.n, lng:c.lo/c.n })).sort((a, b) => a.city.localeCompare(b.city));
+}
+function cuisineChips() {
+  const f = {};
+  allSpots().forEach(s => (s.cuisine||[]).forEach(c => f[c] = (f[c]||0) + 1));
+  return Object.entries(f).sort((a, b) => b[1] - a[1]).slice(0, 14).map(x => x[0]);
+}
+
+/* ---------- toast ---------- */
+let tt;
+function toast(msg) {
+  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(tt); tt = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+/* ---------- icons ---------- */
+const ICO = {
+  heart: '<svg width="22" height="22" viewBox="0 0 24 24" stroke-width="2.2"><path d="M12 20.5s-8-5-8-11a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 6-8 11-8 11z"/></svg>',
+  search: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5B6178" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>'
+};
+
+/* ---------- cards ---------- */
+function card(x) {
+  const s = x.s, d = x.d;
+  const pal = PALETTES[hash(s.id) % PALETTES.length];
+  const saved = S.saved.includes(s.id);
+  const em = s.emoji || emojiFor(s.cuisine);
+  const badge = d != null
+    ? `<div class="mile"><span>${esc(s.city)}</span><b>${fmtD(d)}</b></div>`
+    : `<div class="citytag">${esc(s.city)}</div>`;
+  const where = [s.area, s.city, s.country].filter(Boolean).join(', ');
+  const tags = [];
+  if (s.rating) tags.push(`<span class="tag stars">${'★'.repeat(Math.round(s.rating))} ${Number(s.rating).toFixed(1)}</span>`);
+  if (s.price) tags.push(`<span class="tag">${PRICE[s.price]}</span>`);
+  (s.cuisine||[]).forEach(c => tags.push(`<span class="tag">${esc(c)}</span>`));
+  return `<article class="card" data-id="${esc(s.id)}">
+    <div class="ph" style="background:linear-gradient(140deg,${pal[0]},${pal[1]})">
+      <span class="em" aria-hidden="true">${em}</span>
+      ${s.photo ? `<img src="${esc(s.photo)}" alt="${esc(s.name)}" loading="lazy" onerror="this.remove()">` : ''}
+      ${badge}
+      <button class="heart ${saved ? 'on' : ''}" data-act="save" data-id="${esc(s.id)}" aria-label="${saved ? 'Remove from saved' : 'Save spot'}" aria-pressed="${saved}">${ICO.heart}</button>
+    </div>
+    <div class="body">
+      <h3>${esc(s.name)}</h3>
+      <p class="where">${esc(where)}</p>
+      ${s.dish ? `<div class="must"><small>Must try</small>${esc(s.dish)}</div>` : ''}
+      ${s.desc ? `<p class="desc">${esc(s.desc)}</p>` : ''}
+      <div class="tags">${tags.join('')}</div>
+      <div class="actions">
+        <a class="btn primary" href="${mapsUrl(s)}" target="_blank" rel="noopener">Open in Maps</a>
+        <a class="btn" href="${dirUrl(s)}" target="_blank" rel="noopener">Directions</a>
+        <button class="btn ghost" data-act="share" data-id="${esc(s.id)}">Share</button>
+        ${s.source === 'user' ? `<button class="btn danger" data-act="del" data-id="${esc(s.id)}">Delete</button>` : ''}
+      </div>
+    </div>
+  </article>`;
+}
+
+/* ---------- views ---------- */
+const view = $('#view');
+
+function render() {
+  if (S.map) { S.map.remove(); S.map = null; }
+  $$('nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
+  ({ feed:renderFeed, map:renderMap, saved:renderSaved, add:renderAdd })[S.tab]();
+  $('#locLabel').textContent = S.loc ? S.loc.label : 'Set location';
+  view.scrollTop = 0;
+}
+function refresh() {
+  $('#locLabel').textContent = S.loc ? S.loc.label : 'Set location';
+  if (S.tab === 'feed') { updateList(); updateChips(); if (!S.loc !== !!$('.sign')) renderFeed(); }
+  else if (S.tab === 'saved') renderSaved();
+  else if (S.tab === 'map') renderMap();
+}
+
+function renderFeed() {
+  view.innerHTML = `
+    ${S.loc ? '' : `<section class="sign">
+      <h2>Hungry?</h2>
+      <p>Famous food spots, wherever you land.</p>
+      <div class="row">
+        <button class="btn mile-btn" data-act="locate">Use my location</button>
+        <button class="btn" data-act="openSheet">Pick a city</button>
+      </div></section>`}
+    <div class="filters">
+      <label class="search" style="margin:0">${ICO.search}<input id="q" type="search" placeholder="Search dish, place or city" value="${esc(S.q)}" aria-label="Search food spots"></label>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="count" id="count"></div>
+    <div id="list"></div>`;
+  updateChips(); updateList();
+}
+function updateChips() {
+  const el = $('#chips'); if (!el) return;
+  el.innerHTML = ['all', ...cuisineChips()].map(c =>
+    `<button class="chip ${S.cuisine === c ? 'on' : ''}" data-act="chip" data-c="${esc(c)}">${c === 'all' ? 'All' : esc(c)}</button>`).join('');
+}
+function updateList() {
+  const el = $('#list'); if (!el) return;
+  const a = feedList();
+  const cnt = $('#count');
+  if (cnt) cnt.textContent = S.loc
+    ? `${a.length} spot${a.length === 1 ? '' : 's'} ${S.radius > 0 ? 'within ' + S.radius + ' km' : 'sorted by distance'}`
+    : `${a.length} spot${a.length === 1 ? '' : 's'} worldwide`;
+  if (a.length) { el.innerHTML = a.map(card).join(''); return; }
+  const near = S.loc ? baseList().sort((p, q) => p.d - q.d)[0] : null;
+  el.innerHTML = `<div class="empty"><div class="em">🍽️</div>
+    <h3>${S.loc && !S.q && S.cuisine === 'all' ? 'No spots here yet' : 'Nothing matches'}</h3>
+    <p>${near ? `The closest spot is ${esc(near.s.name)} in ${esc(near.s.city)}, ${fmtD(near.d)} away.` : 'Try a different search or clear the filter.'}</p>
+    <div class="row">
+      ${S.loc && S.radius > 0 ? '<button class="btn primary" data-act="showAll">Show all distances</button>' : ''}
+      <button class="btn" data-act="tab" data-tab="add">Add a spot</button>
+    </div></div>`;
+}
+
+function renderSaved() {
+  const a = S.saved.map(byId).filter(Boolean).map(s => ({ s, d: S.loc ? km(S.loc.lat, S.loc.lng, s.lat, s.lng) : null }));
+  view.innerHTML = a.length
+    ? `<div class="page" style="padding-bottom:0"><h2>Saved</h2><p class="lead" style="margin:0">Your shortlist for the next trip.</p></div>${a.map(card).join('')}`
+    : `<div class="empty"><div class="em">🤍</div><h3>Nothing saved yet</h3><p>Tap the heart on any spot to keep it here.</p><div class="row"><button class="btn primary" data-act="tab" data-tab="feed">Browse spots</button></div></div>`;
+}
+
+function renderMap() {
+  const a = feedList();
+  view.innerHTML = `<div id="mapwrap"><div class="maphead">${a.length} spot${a.length === 1 ? '' : 's'} on the map. Tap a pin for details.</div><div id="map"></div></div>`;
+  if (!window.L) {
+    $('#map').outerHTML = `<div class="empty"><div class="em">🗺️</div><h3>Map didn't load</h3><p>Check your internet connection and reopen this tab.</p></div>`;
+    return;
+  }
+  const m = S.map = L.map('map', { zoomControl: true });
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(m);
+  const pts = [];
+  a.slice(0, 400).forEach(({ s }) => {
+    const icon = L.divIcon({ className: 'pin', html: `<span><i>${s.emoji || emojiFor(s.cuisine)}</i></span>`, iconSize: [36, 36], iconAnchor: [6, 36], popupAnchor: [12, -32] });
+    L.marker([s.lat, s.lng], { icon }).addTo(m).bindPopup(
+      `<p class="pop-t">${esc(s.name)}</p><div>${esc(s.dish || '')}</div><div style="color:#5B6178;font-size:13px">${esc(s.city)}</div><a class="pop-a" href="${mapsUrl(s)}" target="_blank" rel="noopener">Open in Maps</a>`);
+    pts.push([s.lat, s.lng]);
+  });
+  if (S.loc) {
+    L.circleMarker([S.loc.lat, S.loc.lng], { radius: 9, color: '#fff', weight: 3, fillColor: '#1E2B78', fillOpacity: 1 }).addTo(m).bindPopup('You are here');
+    pts.push([S.loc.lat, S.loc.lng]);
+  }
+  if (pts.length > 1) m.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
+  else if (pts.length === 1) m.setView(pts[0], 14);
+  else m.setView([20, 0], 2);
+  setTimeout(() => m.invalidateSize(), 60);
+}
+
+function renderAdd() {
+  view.innerHTML = `<div class="page">
+    <h2>Add a food spot</h2>
+    <p class="lead">Add a place you love. It shows up in your feed right away.</p>
+    <label>Name<input id="f-name" type="text" placeholder="e.g. Karim's" autocomplete="off"></label>
+    <div class="two">
+      <label>City<input id="f-city" type="text" placeholder="Delhi" autocomplete="off"></label>
+      <label>Country<input id="f-country" type="text" placeholder="India" autocomplete="off"></label>
+    </div>
+    <label>Area <small>(optional)</small><input id="f-area" type="text" placeholder="Chandni Chowk" autocomplete="off"></label>
+    <label>Must-try dish<input id="f-dish" type="text" placeholder="Mutton burra" autocomplete="off"></label>
+    <label>Cuisine <small>(separate with commas)</small><input id="f-cuisine" type="text" list="cuisines" placeholder="Street food, Kebab" autocomplete="off"></label>
+    <datalist id="cuisines">${cuisineChips().map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+    <div class="two">
+      <label>Price<select id="f-price"><option value="0">Not sure</option><option value="1">Budget</option><option value="2">Mid-range</option><option value="3">Splurge</option></select></label>
+      <label>Your rating<select id="f-rating"><option value="0">No rating</option><option>5</option><option>4</option><option>3</option><option>2</option><option>1</option></select></label>
+    </div>
+    <label>Why go there <small>(optional)</small><textarea id="f-desc" placeholder="What makes it worth the trip?"></textarea></label>
+    <label>Photo <small>(optional, use your own photo)</small><input id="f-photo" type="file" accept="image/*"><img id="f-prev" class="preview" alt="Photo preview"></label>
+
+    <fieldset class="box">
+      <legend>Location</legend>
+      <div class="row">
+        <button class="btn" data-act="gpsFill">Use my location</button>
+        <button class="btn" data-act="geocode">Find from name and city</button>
+      </div>
+      <label style="margin-top:12px">Or paste a Google Maps link<input id="f-link" type="text" placeholder="https://www.google.com/maps/place/..." autocomplete="off"></label>
+      <div class="two">
+        <label style="margin:0">Latitude<input id="f-lat" type="text" inputmode="decimal" placeholder="28.6497"></label>
+        <label style="margin:0">Longitude<input id="f-lng" type="text" inputmode="decimal" placeholder="77.2334"></label>
+      </div>
+      <p class="status" id="locStatus">Location not set yet.</p>
+    </fieldset>
+    <button class="btn primary wide" data-act="submit">Save spot</button>
+
+    <hr>
+    <h3>Add many spots at once</h3>
+    <p class="lead">Fill a spreadsheet, save as CSV, and import it here.</p>
+    <div class="row">
+      <button class="btn" data-act="tpl">Download CSV template</button>
+      <button class="btn" data-act="import">Import CSV or JSON</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn ghost" data-act="expCsv">Export my spots (CSV)</button>
+      <button class="btn ghost" data-act="expJson">Export my spots (JSON)</button>
+    </div>
+  </div>`;
+  S.photo = null;
+}
+
+/* ---------- location ---------- */
+function setLoc(l, quiet) {
+  S.loc = l; persist(); cloudLoad();
+  if (S.sheet) closeSheet();
+  if (S.tab === 'feed') renderFeed(); else refresh();
+  $('#locLabel').textContent = l ? l.label : 'Set location';
+  if (!quiet && l) toast('Showing spots near ' + l.label);
+}
+function locate() {
+  if (!navigator.geolocation) { toast("Location isn't available here. Pick a city instead."); return; }
+  toast('Finding you...');
+  navigator.geolocation.getCurrentPosition(p => {
+    const lat = p.coords.latitude, lng = p.coords.longitude;
+    let label = 'Your location';
+    const c = cities().map(c => ({ c, d: km(lat, lng, c.lat, c.lng) })).sort((a, b) => a.d - b.d)[0];
+    if (c && c.d < 60) label = 'Near ' + c.c.city;
+    setLoc({ lat, lng, label, source: 'gps' });
+  }, err => {
+    toast(err && err.code === 1 ? 'Location is blocked. Allow it in your browser settings, or pick a city.' : "Couldn't get your location. Pick a city instead.");
+  }, { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 });
+}
+
+function openSheet() {
+  S.sheet = true;
+  const cs = cities();
+  $('#sheetRoot').innerHTML = `<div class="scrim" data-act="closeSheet"></div>
+  <div class="sheet" role="dialog" aria-label="Set location">
+    <h2>Where are you eating?</h2>
+    <button class="btn primary wide" data-act="locate">Use my current location</button>
+    <label>Or pick a city
+      <select id="citySel"><option value="">Choose a city</option>
+        ${cs.map((c, i) => `<option value="${i}">${esc(c.city)}, ${esc(c.country)} (${c.n})</option>`).join('')}
+      </select></label>
+    <label>Show spots within
+      <select id="radiusSel">${[[5,'5 km'],[15,'15 km'],[50,'50 km'],[150,'150 km'],[500,'500 km'],[0,'Any distance']].map(r => `<option value="${r[0]}" ${S.radius === r[0] ? 'selected' : ''}>${r[1]}</option>`).join('')}</select></label>
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" data-act="clearLoc">Clear location</button>
+      <button class="btn primary" data-act="closeSheet" style="flex:1">Done</button>
+    </div>
+  </div>`;
+}
+function closeSheet() { S.sheet = false; $('#sheetRoot').innerHTML = ''; }
+
+/* ---------- shared spots (optional Supabase) ---------- */
+async function cloudLoad() {
+  if (!CLOUD.url) return;
+  let q = 'approved=eq.true&select=*&limit=500';
+  if (S.loc && S.radius > 0) {
+    const dLa = S.radius / 111, dLo = S.radius / (111 * Math.max(0.2, Math.cos(S.loc.lat * Math.PI / 180)));
+    q += `&lat=gte.${S.loc.lat - dLa}&lat=lte.${S.loc.lat + dLa}&lng=gte.${S.loc.lng - dLo}&lng=lte.${S.loc.lng + dLo}`;
+  }
+  try {
+    const r = await fetch(`${CLOUD.url}/rest/v1/spots?${q}`, { headers: { apikey: CLOUD.key, Authorization: 'Bearer ' + CLOUD.key } });
+    if (!r.ok) throw new Error(r.status);
+    const rows = await r.json();
+    S.cloud = rows.map(o => ({ id:'c'+o.id, name:o.name, area:o.area||'', city:o.city, country:o.country||'', lat:+o.lat, lng:+o.lng,
+      cuisine:o.cuisine||[], dish:o.dish||'', price:o.price||0, rating:+o.rating||0, desc:o.description||'', photo:o.photo_url||'', emoji:'', source:'cloud' }));
+    refresh();
+  } catch (e) { toast("Couldn't load shared spots right now."); }
+}
+async function cloudSubmit(s) {
+  if (!CLOUD.url) return false;
+  try {
+    const r = await fetch(`${CLOUD.url}/rest/v1/spots`, {
+      method: 'POST',
+      headers: { apikey: CLOUD.key, Authorization: 'Bearer ' + CLOUD.key, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ name:s.name, area:s.area, city:s.city, country:s.country, lat:s.lat, lng:s.lng, cuisine:s.cuisine, dish:s.dish, price:s.price||null, rating:s.rating||null, description:s.desc, photo_url:/^https?:/.test(s.photo) ? s.photo : null })
+    });
+    return r.ok;
+  } catch (e) { return false; }
+}
+
+/* ---------- add / import / export ---------- */
+function readPhoto(file) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const sc = Math.min(1, 900 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', 0.72));
+      };
+      img.onerror = rej; img.src = fr.result;
+    };
+    fr.onerror = rej; fr.readAsDataURL(file);
+  });
+}
+function setPin(lat, lng) {
+  $('#f-lat').value = (+lat).toFixed(6); $('#f-lng').value = (+lng).toFixed(6);
+  const st = $('#locStatus'); st.textContent = `Location set: ${(+lat).toFixed(4)}, ${(+lng).toFixed(4)}`; st.className = 'status ok';
+}
+function parseMapsLink(t) {
+  const pats = [/@(-?\d+\.\d+),(-?\d+\.\d+)/, /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/, /[?&](?:q|query|ll|destination)=(-?\d+\.\d+)(?:,|%2C)(-?\d+\.\d+)/];
+  for (const p of pats) { const m = t.match(p); if (m) return [+m[1], +m[2]]; }
+  return null;
+}
+async function geocode() {
+  const q = [$('#f-name').value, $('#f-area').value, $('#f-city').value, $('#f-country').value].filter(x => x.trim()).join(' ');
+  if (!$('#f-city').value.trim()) { toast('Enter the city first.'); return; }
+  toast('Searching...');
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(q));
+    const j = await r.json();
+    if (!j.length) { toast("Couldn't find it. Paste a Google Maps link or use your location."); return; }
+    setPin(j[0].lat, j[0].lon); toast('Location found. Check it in Maps before saving.');
+  } catch (e) { toast("Search isn't available right now. Paste a Google Maps link instead."); }
+}
+function gpsFill() {
+  if (!navigator.geolocation) { toast("Location isn't available here."); return; }
+  navigator.geolocation.getCurrentPosition(p => setPin(p.coords.latitude, p.coords.longitude),
+    () => toast("Couldn't get your location. Paste a Google Maps link instead."), { enableHighAccuracy: true, timeout: 12000 });
+}
+async function submit() {
+  const g = id => $('#' + id).value.trim();
+  const lat = parseFloat(g('f-lat')), lng = parseFloat(g('f-lng'));
+  if (!g('f-name')) return toast('Add the spot name.');
+  if (!g('f-city')) return toast('Add the city.');
+  if (!g('f-dish')) return toast('Add a must-try dish.');
+  if (!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return toast('Set the location first.');
+  const cu = g('f-cuisine').split(/[;,]/).map(x => x.trim()).filter(Boolean);
+  const s = { id:'u' + Date.now().toString(36), name:g('f-name'), area:g('f-area'), city:g('f-city'), country:g('f-country'), lat, lng,
+    cuisine:cu, dish:g('f-dish'), price:+$('#f-price').value, rating:+$('#f-rating').value, desc:g('f-desc'), photo:S.photo || '', emoji:emojiFor(cu), source:'user' };
+  S.user.unshift(s); persist();
+  if (S.loc && S.radius > 0 && km(S.loc.lat, S.loc.lng, lat, lng) > S.radius) S.radius = 0;
+  S.q = ''; S.cuisine = 'all';
+  const sent = await cloudSubmit(s);
+  toast(CLOUD.url ? (sent ? 'Spot saved and sent for review.' : 'Spot saved here. Sending failed, try again later.') : 'Spot saved.');
+  S.tab = 'feed'; render();
+}
+
+function parseCSV(t) {
+  t = t.replace(/^\uFEFF/, '');
+  const rows = []; let r = [], f = '', q = false;
+  for (let i = 0; i < t.length; i++) {
+    const c = t[i];
+    if (q) { if (c === '"') { if (t[i+1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { r.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i+1] === '\n') i++; r.push(f); f = ''; if (r.some(x => x.trim())) rows.push(r); r = []; }
+    else f += c;
+  }
+  r.push(f); if (r.some(x => x.trim())) rows.push(r);
+  if (rows.length < 2) return [];
+  const head = rows[0].map(h => h.trim().toLowerCase());
+  return rows.slice(1).map(row => Object.fromEntries(head.map((h, i) => [h, row[i] ?? ''])));
+}
+function norm(o, i) {
+  const g = k => String(o[k] ?? '').trim();
+  const lat = parseFloat(g('lat')), lng = parseFloat(g('lng') || g('lon') || g('long'));
+  if (!g('name') || !g('city') || !isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  let cu = o.cuisine; if (typeof cu === 'string') cu = cu.split(/[;,|]/);
+  cu = (cu || []).map(x => String(x).trim()).filter(Boolean);
+  const pr = parseInt(g('price'), 10), rt = parseFloat(g('rating'));
+  return { id:'u' + Date.now().toString(36) + i, name:g('name'), area:g('area'), city:g('city'), country:g('country'), lat, lng, cuisine:cu,
+    dish:g('dish'), price:[1,2,3].includes(pr) ? pr : 0, rating:rt >= 1 && rt <= 5 ? rt : 0, desc:g('description') || g('desc'),
+    photo:/^https?:\/\//.test(g('photo')) ? g('photo') : '', emoji:emojiFor(cu), source:'user' };
+}
+async function importFile(file) {
+  try {
+    const text = await file.text();
+    let rows;
+    if (/\.json$/i.test(file.name) || text.trim().startsWith('[')) { rows = JSON.parse(text); if (!Array.isArray(rows)) throw 0; }
+    else rows = parseCSV(text);
+    const ok = rows.map(norm).filter(Boolean);
+    S.user = [...ok, ...S.user]; persist();
+    S.radius = S.loc ? 0 : S.radius;
+    toast(`Imported ${ok.length} spot${ok.length === 1 ? '' : 's'}${rows.length - ok.length ? `, skipped ${rows.length - ok.length} (missing name, city or location)` : ''}.`);
+    S.tab = 'feed'; render();
+  } catch (e) { toast("Couldn't read that file. Use the CSV template."); }
+}
+const csvCell = v => { v = String(v ?? ''); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+const HEAD = ['name','area','city','country','lat','lng','cuisine','dish','price','rating','description','photo'];
+function toCSV(list) {
+  return [HEAD.join(','), ...list.map(s => [s.name, s.area, s.city, s.country, s.lat, s.lng, (s.cuisine||[]).join(';'), s.dish, s.price || '', s.rating || '', s.desc, /^https?:/.test(s.photo) ? s.photo : ''].map(csvCell).join(','))].join('\n');
+}
+function download(name, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+function template() {
+  const ex = [{ name:"Example Chaat Corner", area:"Main Market", city:"Dehradun", country:"India", lat:30.3165, lng:78.0322, cuisine:["Chaat","Vegetarian"], dish:"Aloo tikki", price:1, rating:4, desc:"Crispy tikki, tangy chutneys.", photo:"" }];
+  download('swaad-template.csv', toCSV(ex), 'text/csv');
+}
+
+async function share(id) {
+  const s = byId(id); if (!s) return;
+  const text = `${s.name}, ${s.city}. Must try: ${s.dish}`;
+  try { if (navigator.share) { await navigator.share({ title: s.name, text, url: mapsUrl(s) }); return; } }
+  catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text + ' ' + mapsUrl(s)); toast('Link copied.'); }
+  catch (e) { toast("Couldn't share from here."); }
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const nb = e.target.closest('nav button'); if (nb) { S.tab = nb.dataset.tab; render(); return; }
+  const t = e.target.closest('[data-act]'); if (!t) return;
+  const a = t.dataset.act, id = t.dataset.id;
+  switch (a) {
+    case 'tab': S.tab = t.dataset.tab; render(); break;
+    case 'openSheet': openSheet(); break;
+    case 'closeSheet': closeSheet(); break;
+    case 'locate': locate(); break;
+    case 'clearLoc': setLoc(null, true); toast('Location cleared.'); break;
+    case 'showAll': S.radius = 0; persist(); updateList(); break;
+    case 'chip': S.cuisine = t.dataset.c; updateChips(); updateList(); break;
+    case 'save': {
+      const i = S.saved.indexOf(id); if (i > -1) S.saved.splice(i, 1); else S.saved.push(id); persist();
+      if (S.tab === 'saved') renderSaved();
+      else { $$(`.heart[data-id="${CSS.escape(id)}"]`).forEach(b => { const on = S.saved.includes(id); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); b.classList.remove('pop'); void b.offsetWidth; if (on) b.classList.add('pop'); }); }
+      break;
+    }
+    case 'share': share(id); break;
+    case 'del': if (confirm('Delete this spot?')) { S.user = S.user.filter(s => s.id !== id); S.saved = S.saved.filter(x => x !== id); persist(); refresh(); toast('Spot deleted.'); } break;
+    case 'gpsFill': gpsFill(); break;
+    case 'geocode': geocode(); break;
+    case 'submit': submit(); break;
+    case 'tpl': template(); break;
+    case 'import': $('#imp').click(); break;
+    case 'expCsv': S.user.length ? download('my-spots.csv', toCSV(S.user), 'text/csv') : toast('You have not added any spots yet.'); break;
+    case 'expJson': S.user.length ? download('my-spots.json', JSON.stringify(S.user, null, 2), 'application/json') : toast('You have not added any spots yet.'); break;
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'q') { S.q = e.target.value; updateList(); }
+  if (e.target.id === 'f-link') { const p = parseMapsLink(e.target.value); if (p) { setPin(p[0], p[1]); } }
+});
+document.addEventListener('change', async e => {
+  const id = e.target.id;
+  if (id === 'citySel' && e.target.value !== '') { const c = cities()[+e.target.value]; setLoc({ lat:c.lat, lng:c.lng, label:c.city, source:'city' }); }
+  if (id === 'radiusSel') { S.radius = +e.target.value; persist(); cloudLoad(); refresh(); }
+  if (id === 'imp' && e.target.files[0]) { await importFile(e.target.files[0]); e.target.value = ''; }
+  if (id === 'f-photo' && e.target.files[0]) {
+    try { S.photo = await readPhoto(e.target.files[0]); const p = $('#f-prev'); p.src = S.photo; p.style.display = 'block'; }
+    catch (err) { toast("Couldn't read that photo."); }
+  }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && S.sheet) closeSheet(); });
+
+/* ---------- start ---------- */
+(async () => {
+  const d = await store.get('swaad:v1');
+  if (d) { S.user = d.user || []; S.saved = d.saved || []; S.loc = d.loc || null; S.radius = d.radius ?? 50; }
+  render(); cloudLoad();
+})();
+if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('swaad-sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>

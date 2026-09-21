@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foundry</title>
+<link rel="manifest" href="foundry-manifest.json">
+<meta name="theme-color" content="#0D0F0E">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: #0D0F0E; color: #F3F5F1; min-height: 100vh; }
+  .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.5px; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  input { font-family: inherit; background: #171917; border: 1px solid #262B28; color: #F3F5F1; padding: 12px; border-radius: 10px; font-size: 14px; width: 100%; }
+  input::placeholder { color: #5B615C; }
+  input:focus, button:focus-visible { outline: 2px solid #D4FF3F; outline-offset: 1px; }
+  button { cursor: pointer; font-family: inherit; }
+  svg.icon { display: block; }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  header { padding: 26px 20px 10px; }
+  header p { color: #8A9089; font-size: 13px; }
+  header h1 { font-size: 38px; margin-top: 2px; }
+  nav.tabs { display: flex; justify-content: space-around; position: fixed; bottom: 0; left: 0; right: 0; background: #141715; border-top: 1px solid #262B28; padding: 8px 4px 14px; }
+  nav.tabs .inner { display: flex; justify-content: space-around; width: 100%; max-width: 640px; margin: 0 auto; }
+  nav.tabs button { background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 8px; color: #5B615C; }
+  nav.tabs button.active { color: #D4FF3F; }
+  nav.tabs button span { font-size: 10px; font-weight: 600; }
+  main { padding: 0 20px 100px; }
+  .card { background: #171917; border-radius: 14px; padding: 14px; border: 1px solid #262B28; margin-bottom: 10px; }
+  .section-title { font-size: 20px; margin: 4px 0 12px; }
+  .row { display: flex; gap: 8px; }
+  .row > input { flex: 1; }
+  .btn-primary { background: #D4FF3F; border: none; border-radius: 10px; padding: 0 16px; color: #0D0F0E; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .btn-primary.block { width: 100%; padding: 14px; gap: 8px; }
+  .mic-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 16px; border-radius: 14px; border: none; background: #1D211F; color: #F3F5F1; font-size: 15px; font-weight: 600; }
+  .mic-btn.listening { background: #D4FF3F; color: #0D0F0E; }
+  .manual-toggle { background: none; border: none; color: #8A9089; font-size: 13px; display: flex; align-items: center; gap: 4px; padding: 10px 0; }
+  .manual-body { display: none; margin-top: 8px; }
+  .manual-body.open { display: block; }
+  .entry-date { font-size: 12px; color: #8A9089; margin-bottom: 8px; }
+  .entry-row { display: flex; align-items: center; padding: 6px 0; }
+  .entry-row .name { flex: 1; font-size: 14px; }
+  .entry-row .meta { font-size: 12px; color: #8A9089; margin-right: 10px; }
+  .del-btn { background: none; border: none; color: #FF6B35; display: flex; }
+  .tile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .tile-label { color: #8A9089; display: flex; align-items: center; gap: 6px; font-size: 12px; margin-bottom: 8px; }
+  .tile-value { display: flex; align-items: baseline; }
+  .tile-value .num { font-size: 24px; }
+  .trend { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; margin-left: 6px; }
+  .trend.good { color: #D4FF3F; } .trend.bad { color: #FF6B35; }
+  .hero { display: flex; align-items: center; gap: 20px; background: #171917; border-radius: 18px; padding: 20px; margin-bottom: 16px; border: 1px solid #262B28; }
+  .habit-row { display: flex; align-items: center; background: #171917; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid #262B28; }
+  .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .photo-grid img { width: 100%; border-radius: 10px; border: 1px solid #262B28; display: block; }
+  .photo-cell { position: relative; }
+  .photo-cell .del-btn { position: absolute; top: 6px; right: 6px; background: rgba(13,15,14,0.85); border-radius: 6px; padding: 4px; }
+  .muted-note { font-size: 12px; color: #5B615C; margin-top: 10px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p id="today-date"></p>
+    <h1 class="display">FOUNDRY</h1>
+  </header>
+  <main id="content"></main>
+  <nav class="tabs"><div class="inner" id="tabs"></div></nav>
+</div>
+
+<script>
+/* ---------- storage ---------- */
+const K = { diet: "foundry_diet", gym: "foundry_gym", sleep: "foundry_sleep", habits: "foundry_habits", photos: "foundry_photos" };
+function load(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } }
+function save(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { console.error(e); } }
+
+let state = {
+  diet: load(K.diet, []),
+  gym: load(K.gym, []),
+  sleep: load(K.sleep, []),
+  habits: load(K.habits, { list: [{ id: uid(), name: "English practice" }, { id: uid(), name: "Career task" }], logs: {} }),
+  photos: load(K.photos, []),
+  tab: "today",
+};
+function persist(part) { save(K[part], state[part]); }
+
+/* ---------- helpers ---------- */
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+function daysAgoStr(n) { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); }
+function fmtDate(d) { return new Date(d + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : s; return d.innerHTML; }
+
+function habitStreak(id) {
+  let streak = 0; let d = new Date();
+  while (true) {
+    const key = d.toISOString().slice(0, 10);
+    if ((state.habits.logs[key] || []).includes(id)) { streak++; d.setDate(d.getDate() - 1); } else break;
+  }
+  return streak;
+}
+function trendCalc(curr, prev) {
+  if (!prev) return null;
+  const diff = curr - prev; const pct = Math.round((diff / prev) * 100);
+  return { up: diff > 0, pct: Math.abs(pct) };
+}
+function trendTag(t, goodWhenUp) {
+  if (!t || t.pct === 0) return "";
+  const good = goodWhenUp ? t.up : !t.up;
+  const icon = t.up ? ICON.trendUp : ICON.trendDown;
+  return `<span class="trend ${good ? "good" : "bad"}">${icon}${t.pct}%</span>`;
+}
+
+/* ---------- voice parsing ---------- */
+function extractNumber(text, patterns) { for (const p of patterns) { const m = text.match(p); if (m) return m[1]; } return ""; }
+function parseDietVoice(text) {
+  const calories = extractNumber(text, [/(\d+)\s*(?:kcal|calories|cal)\b/i]);
+  const meal = text.replace(/(\d+)\s*(?:kcal|calories|cal)\b/i, "").trim();
+  return { meal: meal || text, calories };
+}
+function parseGymVoice(text) {
+  const sets = extractNumber(text, [/(\d+)\s*sets?/i]);
+  const reps = extractNumber(text, [/(\d+)\s*reps?/i]);
+  const weight = extractNumber(text, [/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i]);
+  let exercise = text.replace(/(\d+)\s*sets?/i, "").replace(/(\d+)\s*reps?/i, "").replace(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i, "").replace(/\bof\b|\bfor\b|\bat\b|\bx\b/gi, "").trim();
+  return { exercise: exercise || text, sets, reps, weight };
+}
+function parseSleepVoice(text) {
+  const hours = extractNumber(text, [/(\d+(?:\.\d+)?)\s*(?:hours?|hrs?)/i]);
+  const steps = extractNumber(text, [/(\d+)\s*steps?/i, /(\d+(?:\.\d+)?)\s*km/i]);
+  return { hours, steps };
+}
+function startVoice(onFinal) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { alert("Voice input isn't supported in this browser — use manual entry below instead."); return null; }
+  const rec = new SR();
+  rec.continuous = false; rec.interimResults = false; rec.lang = "en-IN";
+  rec.onresult = (e) => onFinal(e.results[0][0].transcript);
+  return rec;
+}
+function micButton(id, placeholder, onTranscript) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return "";
+  setTimeout(() => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    let rec = null; let listening = false;
+    btn.addEventListener("click", () => {
+      if (listening) { rec && rec.stop(); listening = false; btn.classList.remove("listening"); btn.innerHTML = ICON.mic + placeholder; return; }
+      rec = startVoice((t) => { onTranscript(t); listening = false; btn.classList.remove("listening"); btn.innerHTML = ICON.mic + placeholder; });
+      if (!rec) return;
+      rec.onend = () => { listening = false; btn.classList.remove("listening"); btn.innerHTML = ICON.mic + placeholder; };
+      rec.onerror = () => { listening = false; btn.classList.remove("listening"); btn.innerHTML = ICON.mic + placeholder; };
+      rec.start(); listening = true; btn.classList.add("listening"); btn.innerHTML = ICON.micOff + "Listening… speak now";
+    });
+  }, 0);
+  return `<button class="mic-btn" id="${id}">${ICON.mic}${placeholder}</button>`;
+}
+
+/* ---------- images ---------- */
+function resizeImage(file, maxW) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxW / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale; canvas.height = img.height * scale;
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.72));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- sparkline (no external chart lib) ---------- */
+function sparkline(values, color, height) {
+  height = height || 60;
+  const w = 300;
+  if (values.length < 2) return `<div style="color:#5B615C;font-size:12px;">Not enough data yet</div>`;
+  const max = Math.max(...values), min = Math.min(...values);
+  const range = max - min || 1;
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * (w - 10) + 5;
+    const y = height - 10 - ((v - min) / range) * (height - 20);
+    return `${x},${y}`;
+  }).join(" ");
+  const dots = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * (w - 10) + 5;
+    const y = height - 10 - ((v - min) / range) * (height - 20);
+    return `<circle cx="${x}" cy="${y}" r="3" fill="${color}" />`;
+  }).join("");
+  return `<svg viewBox="0 0 ${w} ${height}" style="width:100%;height:${height}px;"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg>`;
+}
+
+/* ---------- icons (inline svg) ---------- */
+const ICON = {
+  mic: `<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+  micOff: `<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="22" y2="22"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9V5a3 3 0 0 0-5.94-.6"/><path d="M5 10a7 7 0 0 0 10.7 5.95M19 10a7 7 0 0 1-.34 2.16"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+  plus: `<svg class="icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  trash: `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>`,
+  trendUp: `<svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline-block;vertical-align:middle;"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>`,
+  trendDown: `<svg class="icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:inline-block;vertical-align:middle;"><polyline points="3 7 9 13 13 9 21 17"/><polyline points="14 17 21 17 21 10"/></svg>`,
+  flame: `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 17a2.5 2.5 0 0 0 2.5-2.5c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2 1.5z"/></svg>`,
+  moon: `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`,
+  footprints: `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 9c.03-1.53 1.24-2 2-2 .76 0 2 .5 2 2v3"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-4.62-.03-1.53-1.24-2-2-2-.76 0-2 .5-2 2v3"/></svg>`,
+  dumbbell: `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.5 6.5 17.5 17.5"/><path d="M15 4l5 5M4 15l5 5M2.5 8.5l3-3a1.5 1.5 0 0 1 2.12 0l1 1a1.5 1.5 0 0 1 0 2.12l-3 3a1.5 1.5 0 0 1-2.12 0l-1-1a1.5 1.5 0 0 1 0-2.12zM12.38 18.38l3-3a1.5 1.5 0 0 1 2.12 0l1 1a1.5 1.5 0 0 1 0 2.12l-3 3a1.5 1.5 0 0 1-2.12 0l-1-1a1.5 1.5 0 0 1 0-2.12z"/></svg>`,
+  checkCircle: `<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D4FF3F" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12l2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  circle: `<svg class="icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5B615C" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>`,
+  camera: `<svg class="icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+  home: `<svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`,
+  utensils: `<svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 2v7c0 1.1.9 2 2 2s2-.9 2-2V2M5 12v10M15 2v20M21 15c-2 0-3-1.5-3-4V2"/></svg>`,
+  imageIcon: `<svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>`,
+  listChecks: `<svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6l2 2 4-4M3 14l2 2 4-4M11 6h10M11 14h10M11 20h10"/></svg>`,
+  chevDown: `<svg class="icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>`,
+};
+
+/* ---------- nav ---------- */
+const TABS = [
+  { id: "today", label: "Today", icon: ICON.home },
+  { id: "diet", label: "Diet", icon: ICON.utensils },
+  { id: "gym", label: "Gym", icon: ICON.dumbbell },
+  { id: "sleep", label: "Sleep", icon: ICON.moon },
+  { id: "habits", label: "Habits", icon: ICON.listChecks },
+  { id: "photos", label: "Photos", icon: ICON.imageIcon },
+];
+function renderTabs() {
+  document.getElementById("tabs").innerHTML = TABS.map((t) =>
+    `<button class="${state.tab === t.id ? "active" : ""}" onclick="setTab('${t.id}')">${t.icon}<span>${t.label}</span></button>`
+  ).join("");
+}
+function setTab(id) { state.tab = id; render(); }
+
+/* ---------- derived stats ---------- */
+function computeStats() {
+  const last7 = [...Array(7)].map((_, i) => daysAgoStr(i));
+  const prev7 = [...Array(7)].map((_, i) => daysAgoStr(i + 7));
+  function dailyCalories(dates) {
+    const byDate = {};
+    state.diet.forEach((x) => { if (dates.includes(x.date)) byDate[x.date] = (byDate[x.date] || 0) + Number(x.calories || 0); });
+    const vals = Object.values(byDate);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  }
+  function avgField(arr, key, dates) {
+    const rel = arr.filter((x) => dates.includes(x.date) && x[key]);
+    return rel.length ? rel.reduce((s, x) => s + Number(x[key] || 0), 0) / rel.length : 0;
+  }
+  const calThis = dailyCalories(last7), calPrev = dailyCalories(prev7);
+  const sleepThis = avgField(state.sleep, "hours", last7), sleepPrev = avgField(state.sleep, "hours", prev7);
+  const stepsThis = avgField(state.sleep, "steps", last7), stepsPrev = avgField(state.sleep, "steps", prev7);
+  const workoutsThis = state.gym.filter((x) => last7.includes(x.date)).length;
+  const workoutsPrev = state.gym.filter((x) => prev7.includes(x.date)).length;
+  const habitTotal = state.habits.list.length;
+  const habitCompletion = habitTotal ? last7.reduce((s, d) => s + ((state.habits.logs[d] || []).length), 0) / (habitTotal * 7) : 0;
+  return {
+    calorieAvg: Math.round(calThis), calorieTrend: trendCalc(calThis, calPrev),
+    sleepAvg: sleepThis ? sleepThis.toFixed(1) : "—", sleepTrend: trendCalc(sleepThis, sleepPrev),
+    stepsAvg: Math.round(stepsThis), stepsTrend: trendCalc(stepsThis, stepsPrev),
+    workoutsThis, workoutsTrend: trendCalc(workoutsThis, workoutsPrev),
+    habitCompletion: Math.round(habitCompletion * 100),
+  };
+}
+
+/* ---------- views ---------- */
+function ringSvg(pct, size, label, sub) {
+  size = size || 110;
+  const r = (size - 12) / 2, c = 2 * Math.PI * r;
+  const offset = c - (Math.min(pct, 100) / 100) * c;
+  return `<div style="position:relative;width:${size}px;height:${size}px;">
+    <svg width="${size}" height="${size}">
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#262B28" stroke-width="10"/>
+      <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#D4FF3F" stroke-width="10" stroke-dasharray="${c}" stroke-dashoffset="${offset}" stroke-linecap="round" transform="rotate(-90 ${size/2} ${size/2})"/>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+      <span class="display" style="font-size:26px;">${label}</span>
+      <span style="font-size:10px;color:#8A9089;">${sub}</span>
+    </div>
+  </div>`;
+}
+function tile(icon, label, value, trendHtml) {
+  return `<div class="card" style="margin-bottom:0;">
+    <div class="tile-label">${icon}${label}</div>
+    <div class="tile-value"><span class="num display">${value}</span>${trendHtml || ""}</div>
+  </div>`;
+}
+function renderToday() {
+  const s = computeStats();
+  const longestStreak = state.habits.list.reduce((m, h) => Math.max(m, habitStreak(h.id)), 0);
+  const todayHabitsDone = (state.habits.logs[todayStr()] || []).length;
+  const last7 = [...Array(7)].map((_, i) => daysAgoStr(6 - i));
+  const sleepVals = last7.map((d) => Number(state.sleep.find((x) => x.date === d)?.hours) || 0);
+
+  return `
+  <div class="hero">
+    ${ringSvg(s.habitCompletion, 110, s.habitCompletion + "%", "7-day habit rate")}
+    <div>
+      <div style="color:#8A9089;font-size:12px;">Longest active streak</div>
+      <div class="display" style="font-size:34px;color:#D4FF3F;">${longestStreak}d</div>
+      <div style="color:#8A9089;font-size:12px;margin-top:6px;">Today: ${todayHabitsDone}/${state.habits.list.length || 0} habits done</div>
+    </div>
+  </div>
+  <div class="tile-grid">
+    ${tile(ICON.flame, "Avg calories/day", s.calorieAvg || "—", trendTag(s.calorieTrend, false))}
+    ${tile(ICON.moon, "Avg sleep", s.sleepAvg + "h", trendTag(s.sleepTrend, true))}
+    ${tile(ICON.footprints, "Avg steps", s.stepsAvg || "—", trendTag(s.stepsTrend, true))}
+    ${tile(ICON.dumbbell, "Workouts (7d)", s.workoutsThis, trendTag(s.workoutsTrend, true))}
+  </div>
+  ${sleepVals.some((v) => v) ? `<div class="card"><div style="font-size:12px;color:#8A9089;margin-bottom:4px;">Sleep, last 7 days</div>${sparkline(sleepVals, "#D4FF3F", 70)}</div>` : ""}
+  <p class="muted-note">Everything above is calculated automatically from what you log in Diet, Gym, Sleep and Habits — nothing here is typed in directly.</p>
+  `;
+}
+
+function renderDiet() {
+  const grouped = {};
+  state.diet.forEach((x) => { (grouped[x.date] = grouped[x.date] || []).push(x); });
+  const dates = Object.keys(grouped).sort().reverse();
+  return `
+  <h2 class="section-title display">LOG A MEAL</h2>
+  ${micButton("diet-mic", "Say what you ate", (t) => { const r = parseDietVoice(t); addDiet(r.meal, r.calories); })}
+  <button class="manual-toggle" onclick="toggleManual('diet-manual')">${ICON.chevDown} enter manually instead</button>
+  <div class="manual-body" id="diet-manual">
+    <div class="row">
+      <input id="diet-meal" placeholder="Meal">
+      <input id="diet-cal" placeholder="kcal" style="flex:0.6" inputmode="numeric">
+      <button class="btn-primary" onclick="submitDiet()">${ICON.plus}</button>
+    </div>
+  </div>
+  <div style="margin-top:20px;">
+    ${dates.length === 0 ? `<p style="color:#5B615C;font-size:14px;">Nothing logged yet — try the mic above.</p>` : ""}
+    ${dates.map((d) => `
+      <div class="card">
+        <div class="entry-date">${fmtDate(d)} · ${grouped[d].reduce((s, x) => s + Number(x.calories || 0), 0)} kcal</div>
+        ${grouped[d].map((x) => `
+          <div class="entry-row">
+            <span class="name">${escapeHtml(x.meal)}</span>
+            <span class="meta mono">${x.calories || "–"} kcal</span>
+            <button class="del-btn" onclick="removeEntry('diet','${x.id}')">${ICON.trash}</button>
+          </div>`).join("")}
+      </div>`).join("")}
+  </div>`;
+}
+function addDiet(meal, cal) { state.diet.unshift({ id: uid(), date: todayStr(), meal, calories: cal }); persist("diet"); render(); }
+function submitDiet() {
+  const meal = document.getElementById("diet-meal").value.trim();
+  const cal = document.getElementById("diet-cal").value;
+  if (!meal) return;
+  addDiet(meal, cal);
+}
+
+function renderGym() {
+  const grouped = {};
+  state.gym.forEach((x) => { (grouped[x.date] = grouped[x.date] || []).push(x); });
+  const dates = Object.keys(grouped).sort().reverse();
+  const exerciseNames = [...new Set(state.gym.map((x) => x.exercise))];
+  const trendsHtml = exerciseNames.slice(0, 3).map((name) => {
+    const series = state.gym.filter((x) => x.exercise === name && x.weight).sort((a, b) => a.date.localeCompare(b.date)).map((x) => Number(x.weight));
+    if (series.length < 2) return "";
+    return `<div style="margin-bottom:10px;"><div style="font-size:13px;margin-bottom:2px;">${escapeHtml(name)}</div>${sparkline(series, "#D4FF3F", 60)}</div>`;
+  }).join("");
+  return `
+  <h2 class="section-title display">LOG A SET</h2>
+  ${micButton("gym-mic", "Say your set, e.g. bench press 3 sets 10 reps 60 kg", (t) => { const r = parseGymVoice(t); addGym(r.exercise, r.sets, r.reps, r.weight); })}
+  <button class="manual-toggle" onclick="toggleManual('gym-manual')">${ICON.chevDown} enter manually instead</button>
+  <div class="manual-body" id="gym-manual">
+    <input id="gym-exercise" placeholder="Exercise" style="margin-bottom:8px;">
+    <div class="row">
+      <input id="gym-sets" placeholder="Sets" inputmode="numeric">
+      <input id="gym-reps" placeholder="Reps" inputmode="numeric">
+      <input id="gym-weight" placeholder="Kg">
+      <button class="btn-primary" onclick="submitGym()">${ICON.plus}</button>
+    </div>
+  </div>
+  ${trendsHtml ? `<div class="card" style="margin-top:16px;"><div style="font-size:12px;color:#8A9089;margin-bottom:8px;">WEIGHT TREND (auto)</div>${trendsHtml}</div>` : ""}
+  <div style="margin-top:16px;">
+    ${dates.length === 0 ? `<p style="color:#5B615C;font-size:14px;">No workouts yet — try the mic above.</p>` : ""}
+    ${dates.map((d) => `
+      <div class="card">
+        <div class="entry-date">${fmtDate(d)}</div>
+        ${grouped[d].map((x) => `
+          <div class="entry-row">
+            <span class="name">${escapeHtml(x.exercise)}</span>
+            <span class="meta mono">${x.sets || "–"}×${x.reps || "–"}${x.weight ? " @ " + x.weight + "kg" : ""}</span>
+            <button class="del-btn" onclick="removeEntry('gym','${x.id}')">${ICON.trash}</button>
+          </div>`).join("")}
+      </div>`).join("")}
+  </div>`;
+}
+function addGym(ex, sets, reps, weight) { state.gym.unshift({ id: uid(), date: todayStr(), exercise: ex, sets, reps, weight }); persist("gym"); render(); }
+function submitGym() {
+  const ex = document.getElementById("gym-exercise").value.trim();
+  if (!ex) return;
+  addGym(ex, document.getElementById("gym-sets").value, document.getElementById("gym-reps").value, document.getElementById("gym-weight").value);
+}
+
+function renderSleep() {
+  const today = todayStr();
+  const existing = state.sleep.find((x) => x.date === today);
+  const sorted = [...state.sleep].sort((a, b) => a.date.localeCompare(b.date)).slice(-14);
+  const hoursVals = sorted.map((x) => Number(x.hours) || 0);
+  const stepsVals = sorted.map((x) => Number(x.steps) || 0);
+  return `
+  <h2 class="section-title display">LOG TODAY</h2>
+  ${micButton("sleep-mic", "Say e.g. slept 7 hours, walked 6000 steps", (t) => {
+    const r = parseSleepVoice(t);
+    saveSleep(r.hours || (document.getElementById("sleep-hours") || {}).value, r.steps || (document.getElementById("sleep-steps") || {}).value);
+  })}
+  <button class="manual-toggle" onclick="toggleManual('sleep-manual')">${ICON.chevDown} enter manually instead</button>
+  <div class="manual-body" id="sleep-manual">
+    <div class="row" style="margin-bottom:8px;">
+      <input id="sleep-hours" placeholder="Sleep hours" value="${existing?.hours || ""}">
+      <input id="sleep-steps" placeholder="Steps" value="${existing?.steps || ""}">
+    </div>
+    <button class="btn-primary block" onclick="submitSleep()">Save</button>
+  </div>
+  ${sorted.length > 1 ? `
+  <div class="card" style="margin-top:16px;">
+    <div style="font-size:12px;color:#8A9089;margin-bottom:4px;">SLEEP, 14 DAYS (auto)</div>
+    ${sparkline(hoursVals, "#D4FF3F", 80)}
+    <div style="font-size:12px;color:#8A9089;margin:14px 0 4px;">STEPS, 14 DAYS (auto)</div>
+    ${sparkline(stepsVals, "#FF6B35", 80)}
+  </div>` : ""}`;
+}
+function saveSleep(hours, steps) {
+  const today = todayStr();
+  state.sleep = state.sleep.filter((x) => x.date !== today);
+  state.sleep.unshift({ id: uid(), date: today, hours, steps });
+  persist("sleep"); render();
+}
+function submitSleep() { saveSleep(document.getElementById("sleep-hours").value, document.getElementById("sleep-steps").value); }
+
+function renderHabits() {
+  const today = todayStr();
+  const doneToday = state.habits.logs[today] || [];
+  return `
+  <h2 class="section-title display">HABITS</h2>
+  <div class="row" style="margin-bottom:16px;">
+    <input id="habit-name" placeholder="e.g. English practice, career task, haircut">
+    <button class="btn-primary" onclick="submitHabit()">${ICON.plus}</button>
+  </div>
+  ${state.habits.list.length === 0 ? `<p style="color:#5B615C;font-size:14px;">No habits added yet.</p>` : ""}
+  ${state.habits.list.map((h) => {
+    const done = doneToday.includes(h.id);
+    const streak = habitStreak(h.id);
+    return `<div class="habit-row">
+      <button class="del-btn" style="margin-right:12px;color:inherit;" onclick="toggleHabit('${h.id}')">${done ? ICON.checkCircle : ICON.circle}</button>
+      <span style="flex:1;font-size:14px;color:${done ? "#F3F5F1" : "#8A9089"};">${escapeHtml(h.name)}</span>
+      ${streak > 0 ? `<span class="mono" style="font-size:11px;color:#D4FF3F;margin-right:10px;">${streak}d</span>` : ""}
+      <button class="del-btn" onclick="removeEntry('habitDef','${h.id}')">${ICON.trash}</button>
+    </div>`;
+  }).join("")}`;
+}
+function submitHabit() {
+  const name = document.getElementById("habit-name").value.trim();
+  if (!name) return;
+  state.habits.list.push({ id: uid(), name });
+  persist("habits"); render();
+}
+function toggleHabit(id) {
+  const today = todayStr();
+  const t = state.habits.logs[today] || [];
+  state.habits.logs[today] = t.includes(id) ? t.filter((x) => x !== id) : [...t, id];
+  persist("habits"); render();
+}
+
+function renderPhotos() {
+  return `
+  <h2 class="section-title display">PROGRESS PHOTO</h2>
+  <input id="photo-note" placeholder="Note (optional)" style="margin-bottom:8px;">
+  <input type="file" accept="image/*" id="photo-file" style="display:none;" onchange="handlePhoto()">
+  <button class="btn-primary block" onclick="document.getElementById('photo-file').click()">${ICON.camera} Add today's photo</button>
+  <p class="muted-note">For visual comparison only — no app can accurately predict how many days a transformation will take, that depends on too many individual factors.</p>
+  ${state.photos.length >= 2 ? `
+  <div class="card" style="margin-top:16px;">
+    <div style="font-size:12px;color:#8A9089;margin-bottom:8px;">FIRST VS. MOST RECENT</div>
+    <div class="row">
+      <div style="flex:1;"><img src="${state.photos[0].image}" style="border-radius:8px;"><div style="font-size:11px;color:#8A9089;margin-top:4px;">${fmtDate(state.photos[0].date)} (latest)</div></div>
+      <div style="flex:1;"><img src="${state.photos[state.photos.length-1].image}" style="border-radius:8px;"><div style="font-size:11px;color:#8A9089;margin-top:4px;">${fmtDate(state.photos[state.photos.length-1].date)} (first)</div></div>
+    </div>
+  </div>` : ""}
+  <div class="photo-grid">
+    ${state.photos.map((p) => `
+      <div class="photo-cell">
+        <img src="${p.image}">
+        <div style="font-size:11px;color:#8A9089;margin-top:4px;">${fmtDate(p.date)}${p.note ? " · " + escapeHtml(p.note) : ""}</div>
+        <button class="del-btn" onclick="removeEntry('photos','${p.id}')">${ICON.trash}</button>
+      </div>`).join("")}
+  </div>`;
+}
+async function handlePhoto() {
+  const file = document.getElementById("photo-file").files[0];
+  if (!file) return;
+  const dataUrl = await resizeImage(file, 480);
+  const note = document.getElementById("photo-note").value;
+  state.photos.unshift({ id: uid(), date: todayStr(), note, image: dataUrl });
+  persist("photos"); render();
+}
+
+/* ---------- shared actions ---------- */
+function removeEntry(part, id) {
+  if (part === "habitDef") { state.habits.list = state.habits.list.filter((h) => h.id !== id); persist("habits"); }
+  else { state[part] = state[part].filter((x) => x.id !== id); persist(part); }
+  render();
+}
+function toggleManual(id) { document.getElementById(id).classList.toggle("open"); }
+
+/* ---------- render dispatch ---------- */
+function render() {
+  renderTabs();
+  const map = { today: renderToday, diet: renderDiet, gym: renderGym, sleep: renderSleep, habits: renderHabits, photos: renderPhotos };
+  document.getElementById("content").innerHTML = map[state.tab]();
+}
+
+document.getElementById("today-date").textContent = new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+render();
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("foundry-sw.js").catch((e) => console.error("SW registration failed", e));
+}
+
+</script>
+</body>
+</html>
